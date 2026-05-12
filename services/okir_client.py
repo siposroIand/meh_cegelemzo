@@ -67,7 +67,8 @@ class OkirClient:
         **kwargs,
     ) -> Any:
         last_error = None
-        request_method = self._request_methods.get(str(method).lower())
+        method_key = method.lower() if isinstance(method, str) else None
+        request_method = self._request_methods.get(method_key)
         if request_method is None:
             raise ValueError(f"Nem támogatott HTTP metódus: {method}")
 

@@ -46,7 +46,7 @@ def expand_multi_categories(df: pd.DataFrame, category_service) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = df.copy()
-    df["PRODUCT_GROUP"] = df["HULLADEKKOD"].map(lambda c: category_service.resolve_groups(c))
+    df["PRODUCT_GROUP"] = df["HULLADEKKOD"].map(category_service.resolve_groups)
     return df.explode("PRODUCT_GROUP").reset_index(drop=True)
 
 
