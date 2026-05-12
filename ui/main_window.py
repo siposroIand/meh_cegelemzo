@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         out["Irányítószám"] = out["KTJ"].apply(lambda x: self.clean_int_like(meta_value(x, "IRSZAM")))
         out["Helység"] = out["KTJ"].apply(lambda x: meta_value(x, "HELYSEG"))
         out["Cím"] = out["KTJ"].apply(lambda x: meta_value(x, "CIM"))
-        out["Megye"] = out["KTJ"].apply(lambda x: meta_value(x, "MEGYE_NEV"))
+        out["Vármegye"] = out["KTJ"].apply(lambda x: meta_value(x, "MEGYE_NEV"))
         out["Régió"] = out["KTJ"].apply(lambda x: meta_value(x, "REGIO_NEV"))
 
         return out
@@ -1359,7 +1359,7 @@ class MainWindow(QMainWindow):
             "Irányítószám",
             "Helység",
             "Cím",
-            "Megye",
+            "Vármegye",
             "Régió",
             "EV",
             "ADATTIPUS_LABEL",
@@ -1729,7 +1729,7 @@ class MainWindow(QMainWindow):
                 "Irányítószám",
                 "Helység",
                 "Cím",
-                "Megye",
+                "Vármegye",
                 "Régió",
                 "EV",
                 "ADATTIPUS_LABEL",

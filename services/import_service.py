@@ -9,7 +9,7 @@ HEADER_ALIASES = {
     "Teljes név": ["teljes név", "teljes nev", "cégnév", "cegnev"],
     "Adószám": ["adószám", "adoszam"],
     "Cégforma": ["cégforma", "cegforma"],
-    "Megye": ["megye"],
+    "Vármegye": ["vármegye", "varmegye", "megye"],
     "Irányítószám": ["irányítószám", "iranyitoszam"],
     "Település": ["település", "telepules"],
     "Cím": ["cím", "cim"],
@@ -63,7 +63,7 @@ def build_source_from_excel_by_adoszam(
     df = pd.read_excel(excel_path)
     header_map = _build_header_map(df)
 
-    required = ["Teljes név", "Adószám", "Megye", "Irányítószám", "Település", "Cím"]
+    required = ["Teljes név", "Adószám", "Vármegye", "Irányítószám", "Település", "Cím"]
     missing = [col for col in required if col not in header_map]
     if missing:
         raise Exception("Hiányzó kötelező oszlopok: " + ", ".join(missing))
@@ -81,7 +81,7 @@ def build_source_from_excel_by_adoszam(
 
         szekhely = ", ".join([
             p for p in [
-                safe_str(row.get(header_map.get("Megye", ""))),
+                safe_str(row.get(header_map.get("Vármegye", ""))),
                 safe_str(row.get(header_map.get("Irányítószám", ""))),
                 safe_str(row.get(header_map.get("Település", ""))),
                 safe_str(row.get(header_map.get("Cím", ""))),
