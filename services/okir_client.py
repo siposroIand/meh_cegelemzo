@@ -53,14 +53,15 @@ class OkirClient:
         r.raise_for_status()
         return r.json().get("myData", [])
 
-    def fetch(self, kuj: str, adattipus: str, retries: int = 4, timeout: int = 30) -> Any:
-        url = ENDPOINTS[adattipus].format(kuj=kuj)
+    def _request_with_retry(self, method, url, retries, timeout, **kwargs) -> Any:
+        empty_error_message = kwargs.pop("_empty_error_message", "Sikertelen lekérés")
         last_error = None
 
         for attempt in range(1, retries + 1):
             try:
                 self.limiter.wait()
-                r = self.session.get(url, timeout=(10, timeout))
+                request_method = getattr(self.session, str(method).lower())
+                r = request_method(url, timeout=(10, timeout), **kwargs)
                 r.raise_for_status()
                 text = (r.text or "").strip()
                 if not text:
@@ -76,46 +77,30 @@ class OkirClient:
                 last_error = e
                 time.sleep(min(8.0, attempt * 1.15 + random.random() * 0.35))
 
-        raise Exception(str(last_error) if last_error else "Sikertelen lekérés")
+        raise Exception(str(last_error) if last_error else empty_error_message)
+
+    def fetch(self, kuj: str, adattipus: str, retries: int = 4, timeout: int = 30) -> Any:
+        url = ENDPOINTS[adattipus].format(kuj=kuj)
+        return self._request_with_retry("get", url, retries, timeout)
 
     def fetch_ktj_details(self, ktj: str, retries: int = 4, timeout: int = 30) -> List[Dict[str, Any]]:
         url = KTJ_SEARCH_URL.format(ktj=str(ktj).strip())
-        last_error = None
+        payload = self._request_with_retry(
+            "post",
+            url,
+            retries,
+            timeout,
+            data={"start": "0", "limit": "100"},
+            _empty_error_message="Sikertelen KTJ lekérés",
+        )
 
-        for attempt in range(1, retries + 1):
-            try:
-                self.limiter.wait()
-                r = self.session.post(
-                    url,
-                    data={"start": "0", "limit": "100"},
-                    timeout=(10, timeout),
-                )
-                r.raise_for_status()
+        if isinstance(payload, dict):
+            data = payload.get("myData", [])
+            if isinstance(data, list):
+                return data
+            return []
 
-                text = (r.text or "").strip()
-                if not text:
-                    raise Exception("Üres válasz")
-
-                try:
-                    payload = r.json()
-                except Exception:
-                    payload = try_json_load(text)
-                    if payload is None:
-                        raise Exception("Nem JSON válasz")
-
-                if isinstance(payload, dict):
-                    data = payload.get("myData", [])
-                    if isinstance(data, list):
-                        return data
-                    return []
-
-                raise Exception("Váratlan KTJ válaszformátum")
-
-            except Exception as e:
-                last_error = e
-                time.sleep(min(8.0, attempt * 1.15 + random.random() * 0.35))
-
-        raise Exception(str(last_error) if last_error else "Sikertelen KTJ lekérés")
+        raise Exception("Váratlan KTJ válaszformátum")
 
     def fetch_first_ktj_detail(self, ktj: str, retries: int = 4, timeout: int = 30) -> Optional[Dict[str, Any]]:
         items = self.fetch_ktj_details(ktj=ktj, retries=retries, timeout=timeout)
