@@ -45,15 +45,9 @@ def expand_multi_categories(df: pd.DataFrame, category_service) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame()
 
-    expanded_rows = []
-    for _, row in df.iterrows():
-        groups = category_service.resolve_groups(row.get("HULLADEKKOD"))
-        for group in groups:
-            new_row = row.to_dict()
-            new_row["PRODUCT_GROUP"] = group
-            expanded_rows.append(new_row)
-
-    return pd.DataFrame(expanded_rows)
+    df = df.copy()
+    df["PRODUCT_GROUP"] = df["HULLADEKKOD"].map(category_service.resolve_groups)
+    return df.explode("PRODUCT_GROUP").reset_index(drop=True)
 
 
 def aggregate_data(raw_df: pd.DataFrame, source_df: pd.DataFrame, category_service) -> Aggregates:

@@ -1,6 +1,7 @@
 import json
 import pickle
 import sqlite3
+import threading
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -12,17 +13,21 @@ import pandas as pd
 class PersistenceService:
     def __init__(self, db_path: Path):
         self.db_path = db_path
+        self._local = threading.local()
         self._init_db()
 
     def _conn(self):
-        conn = sqlite3.connect(self.db_path, timeout=30)
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        conn.execute("PRAGMA busy_timeout=30000;")
-        return conn
+        if not hasattr(self._local, "conn") or self._local.conn is None:
+            conn = sqlite3.connect(self.db_path, timeout=30)
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+            conn.execute("PRAGMA busy_timeout=30000;")
+            self._local.conn = conn
+        return self._local.conn
 
     def _init_db(self):
-        conn = self._conn()
+        conn = sqlite3.connect(self.db_path, timeout=30)
+        conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,7 +102,6 @@ class PersistenceService:
             )
 
         conn.commit()
-        conn.close()
         return snapshot_id
 
     def list_snapshots(self) -> List[Tuple[int, str, str, str]]:
@@ -105,7 +109,6 @@ class PersistenceService:
         rows = conn.execute(
             "SELECT id, created_at, source_file, note FROM snapshots ORDER BY id DESC"
         ).fetchall()
-        conn.close()
         return rows
 
     def _load_rows(self, conn, table_name: str, snapshot_id: int):
@@ -123,7 +126,6 @@ class PersistenceService:
         source_df = self._load_rows(conn, "snapshot_source_rows", snapshot_id)
         raw_df = self._load_rows(conn, "snapshot_raw_rows", snapshot_id)
         missing_df = self._load_rows(conn, "snapshot_missing_rows", snapshot_id)
-        conn.close()
         return source_df, raw_df, missing_df
 
     # ------------------------------------------------------------------
@@ -135,8 +137,6 @@ class PersistenceService:
             "SELECT payload_json FROM ktj_meta_cache WHERE ktj = ?",
             (str(ktj).strip(),),
         ).fetchone()
-        conn.close()
-
         if not row:
             return None
 
@@ -162,7 +162,6 @@ class PersistenceService:
             ),
         )
         conn.commit()
-        conn.close()
 
     # ------------------------------------------------------------------
     # Shared package export / import
