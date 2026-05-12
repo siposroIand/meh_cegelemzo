@@ -1,0 +1,26 @@
+cc/
+├─ app.py
+├─ core/
+│  ├─ constants.py
+│  ├─ logger.py
+│  └─ utils.py
+├─ models/
+│  └─ records.py
+├─ services/
+│  ├─ aggregation_service.py
+│  ├─ cache_db.py
+│  ├─ category_service.py
+│  ├─ export_service.py
+│  ├─ import_service.py
+│  ├─ okir_client.py
+│  └─ persistence_service.py
+├─ ui/
+│  ├─ main_window.py
+│  └─ widgets.py
+├─ workers/
+│  └─ fetch_worker.py
+├─ config/
+│  └─ product_groups.json
+├─ data/
+├─ logs/
+└─ output/
