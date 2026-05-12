@@ -53,14 +53,27 @@ class OkirClient:
         r.raise_for_status()
         return r.json().get("myData", [])
 
-    def _request_with_retry(self, method, url, retries, timeout, **kwargs) -> Any:
-        empty_error_message = kwargs.pop("_empty_error_message", "Sikertelen lekérés")
+    def _request_with_retry(
+        self,
+        method,
+        url,
+        retries,
+        timeout,
+        empty_error_message: str = "Sikertelen lekérés",
+        **kwargs,
+    ) -> Any:
         last_error = None
+        request_methods = {
+            "get": self.session.get,
+            "post": self.session.post,
+        }
+        request_method = request_methods.get(str(method).lower())
+        if request_method is None:
+            raise ValueError(f"Nem támogatott HTTP metódus: {method}")
 
         for attempt in range(1, retries + 1):
             try:
                 self.limiter.wait()
-                request_method = getattr(self.session, str(method).lower())
                 r = request_method(url, timeout=(10, timeout), **kwargs)
                 r.raise_for_status()
                 text = (r.text or "").strip()
@@ -91,7 +104,7 @@ class OkirClient:
             retries,
             timeout,
             data={"start": "0", "limit": "100"},
-            _empty_error_message="Sikertelen KTJ lekérés",
+            empty_error_message="Sikertelen KTJ lekérés",
         )
 
         if isinstance(payload, dict):

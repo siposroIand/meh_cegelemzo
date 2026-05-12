@@ -18,7 +18,7 @@ class PersistenceService:
 
     def _conn(self):
         if not hasattr(self._local, "conn") or self._local.conn is None:
-            conn = sqlite3.connect(self.db_path, timeout=30, check_same_thread=False)
+            conn = sqlite3.connect(self.db_path, timeout=30)
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("PRAGMA synchronous=NORMAL;")
             conn.execute("PRAGMA busy_timeout=30000;")
