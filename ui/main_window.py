@@ -282,11 +282,13 @@ class MainWindow(QMainWindow):
                 return item.get(key, "")
             return ""
 
+        out["KTJ megnevezés"] = out["KTJ"].apply(lambda x: meta_value(x, "MEGNEVEZES"))
         out["Besorolás"] = out["KTJ"].apply(lambda x: meta_value(x, "BESOROLAS"))
         out["Irányítószám"] = out["KTJ"].apply(lambda x: self.clean_int_like(meta_value(x, "IRSZAM")))
         out["Helység"] = out["KTJ"].apply(lambda x: meta_value(x, "HELYSEG"))
         out["Cím"] = out["KTJ"].apply(lambda x: meta_value(x, "CIM"))
-        out["Vármegye"] = out["KTJ"].apply(lambda x: meta_value(x, "MEGYE_NEV"))
+        out["Megye"] = out["KTJ"].apply(lambda x: meta_value(x, "MEGYE_NEV"))
+        out["Régió"] = out["KTJ"].apply(lambda x: meta_value(x, "REGIO_NEV"))
 
         return out
 
@@ -1337,28 +1339,35 @@ class MainWindow(QMainWindow):
         if "PRODUCT_GROUP" not in out.columns and "HULLADEKKOD" in out.columns:
             out["PRODUCT_GROUP"] = out["HULLADEKKOD"].astype(str).apply(self.resolve_product_group)
 
+        if "OSSZES_MENNYISEG" in out.columns:
+            out["Összes mennyiség"] = out["OSSZES_MENNYISEG"].apply(lambda x: format_quantity_auto_unit(x, 2))
+        elif "MENNYISEG" in out.columns:
+            out["Összes mennyiség"] = out["MENNYISEG"].apply(lambda x: format_quantity_auto_unit(x, 2))
+        else:
+            out["Összes mennyiség"] = ""
+
         self.set_status("KTJ metaadatok betöltése...")
         self.ensure_ktj_metadata_loaded(out)
         out = self.enrich_with_ktj_metadata(out)
-        out = self.add_quantity_columns(out)
 
         preferred_cols = [
             "CEGNEV",
             "KUJ",
             "KTJ",
+            "KTJ megnevezés",
             "Besorolás",
-            "Vármegye",
             "Irányítószám",
             "Helység",
             "Cím",
+            "Megye",
+            "Régió",
             "EV",
             "ADATTIPUS_LABEL",
             "PRODUCT_GROUP",
             "HULLADEKKOD",
             "HULLADEK_MEGNEVEZES",
             "Veszélyes",
-            "Mennyiség (kg)",
-            "Mennyiség (t)",
+            "Összes mennyiség",
         ]
 
         existing_cols = [c for c in preferred_cols if c in out.columns]
@@ -1703,26 +1712,34 @@ class MainWindow(QMainWindow):
 
             self.ensure_ktj_metadata_loaded(out)
             out = self.enrich_with_ktj_metadata(out)
-            out = self.add_quantity_columns(out)
+
+            if "OSSZES_MENNYISEG" in out.columns:
+                qty_col = "OSSZES_MENNYISEG"
+            elif "MENNYISEG" in out.columns:
+                qty_col = "MENNYISEG"
+            else:
+                qty_col = None
 
             export_cols = [
                 "CEGNEV",
                 "KUJ",
                 "KTJ",
+                "KTJ megnevezés",
                 "Besorolás",
-                "Vármegye",
                 "Irányítószám",
                 "Helység",
                 "Cím",
+                "Megye",
+                "Régió",
                 "EV",
                 "ADATTIPUS_LABEL",
                 "PRODUCT_GROUP",
                 "HULLADEKKOD",
                 "HULLADEK_MEGNEVEZES",
                 "Veszélyes",
-                "Mennyiség (kg)",
-                "Mennyiség (t)",
             ]
+            if qty_col:
+                export_cols.append(qty_col)
 
             export_cols = [c for c in export_cols if c in out.columns]
             out = out[export_cols].copy()
@@ -1737,6 +1754,8 @@ class MainWindow(QMainWindow):
                 "HULLADEKKOD": "Hulladékkód",
                 "HULLADEK_MEGNEVEZES": "Megnevezés",
             }
+            if qty_col:
+                rename_map[qty_col] = "Összes mennyiség"
 
             out.rename(columns=rename_map, inplace=True)
 
