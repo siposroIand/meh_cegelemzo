@@ -45,10 +45,6 @@ class OkirClient:
             "X-Requested-With": "XMLHttpRequest",
         })
         self.limiter = limiter or _SHARED_LIMITER
-        self._request_methods = {
-            "get": self.session.get,
-            "post": self.session.post,
-        }
 
     def fetch_companies_by_kshkod(self, kshkod: str, timeout: int = 30) -> List[Dict[str, Any]]:
         self.limiter.wait()
@@ -59,7 +55,7 @@ class OkirClient:
 
     def _request_with_retry(
         self,
-        method,
+        method: str,
         url,
         retries,
         timeout,
@@ -67,9 +63,12 @@ class OkirClient:
         **kwargs,
     ) -> Any:
         last_error = None
-        method_key = method.lower() if isinstance(method, str) else None
-        request_method = self._request_methods.get(method_key)
-        if request_method is None:
+        method_key = method.lower()
+        if method_key == "get":
+            request_method = self.session.get
+        elif method_key == "post":
+            request_method = self.session.post
+        else:
             raise ValueError(f"Nem támogatott HTTP metódus: {method}")
 
         for attempt in range(1, retries + 1):
